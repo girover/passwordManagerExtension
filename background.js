@@ -32,9 +32,9 @@ chrome.runtime.onMessage.addListener(async function(request, sender, sendRespons
 });
 
 // Listen for popup.js messages
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener(async(message, sender, sendResponse) => {
     if (message.type === 'getData') {
-        sendResponse({data: JSON.stringify(foundPassword)});
+        await sendResponse({data: JSON.stringify(foundPassword)});
     }
 });
 

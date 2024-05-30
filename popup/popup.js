@@ -1,5 +1,10 @@
 document.addEventListener('DOMContentLoaded', function () {
 
+    const openTab = async (url) => {
+        let tab = await chrome.tabs.create({ url: url });
+        return tab;
+    };
+    
     var webAppButton = document.getElementById('btn-web-app');
     var generatorButton = document.getElementById('btn-generator');
     var vaultButton = document.getElementById('btn-vault');
@@ -10,13 +15,14 @@ document.addEventListener('DOMContentLoaded', function () {
     var tablePasswords = document.getElementById('table-passwords-tbody');
 
     webAppButton.addEventListener('click', () => {
-        searchInput.value = 'Web App';
+        
+        openTab('http://localhost:3000');
     });
-    vaultButton.addEventListener('click', () => {
-        searchInput.value = 'Vault';
+    vaultButton.addEventListener('click', async () => {
+        await fetchVauldData();
     });
     generatorButton.addEventListener('click', () => {
-        searchInput.value = 'Generator';
+        
     });
 
     logoutButton.addEventListener('click', async () => {
@@ -32,7 +38,9 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     const fetchSiteData = async () => {
-        let url = `http://localhost:3300/api/passwords/site/url/?search=${searchInput.value}`;
+        tablePasswords.innerHTML = '';
+        //let url = `http://localhost:3300/api/passwords/site/url/?search=${searchInput.value}`;
+        let url = `http://localhost:3300/api/passwords/name/${searchInput.value}`;
         try {
             const response = await fetch(url, {
                 method: 'GET',
@@ -46,22 +54,27 @@ document.addEventListener('DOMContentLoaded', function () {
             const data = await response.json();
             console.log(data);
             if (data.data) {
+
+                if(Array.isArray(data.data)){
+                    data.data = data.data[0];
+                }
+
                 var tr = document.createElement('tr');
 
                 var tdSite = document.createElement('td');
                 var tdUsername = document.createElement('td');
                 var tdPassword = document.createElement('td');
-                var tdFillButton = document.createElement('td');
-                var fillButton = document.createElement('button');
-                fillButton.classList.add('btn', 'btn-sm', 'btn-dark');
-                fillButton.innerText = 'fill';
+                var tdSubmitButton = document.createElement('td');
+                var submitButton = document.createElement('button');
+                submitButton.classList.add('btn', 'btn-sm', 'btn-dark');
+                submitButton.innerText = 'submit';
 
                 tdSite.innerText = data.data.site;
                 tdUsername.innerText = data.data.username;
                 tdPassword.innerText = '*'.repeat(data.data.password.length);
                 // tdPassword.innerText = data.data.password;
-                tdFillButton.appendChild(fillButton);
-                fillButton.addEventListener('click', () => {
+                tdSubmitButton.appendChild(submitButton);
+                submitButton.addEventListener('click', () => {
                     // Send data to content.js
                     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                         chrome.tabs.sendMessage(tabs[0].id, { type: 'fillPassword', data: data.data });
@@ -71,9 +84,69 @@ document.addEventListener('DOMContentLoaded', function () {
                 tr.appendChild(tdSite);
                 tr.appendChild(tdUsername);
                 tr.appendChild(tdPassword);
-                tr.appendChild(tdFillButton);
+                tr.appendChild(tdSubmitButton);
 
                 tablePasswords.appendChild(tr);
+            } else {
+                message.textContent = 'No password input detected.';
+            }
+        } catch (error) {
+            console.error('Fetch error:', error);
+        }
+    }
+    const fetchVauldData = async () => {
+        tablePasswords.innerHTML = '';
+        let url = `http://localhost:3300/api/passwords`;
+        try {
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            const data = await response.json();
+            // console.log(data.data); // Array of passwords
+            if (data.data && data.data.length > 0) {
+                data.data.forEach((password) => {
+                
+                var tr = document.createElement('tr');
+
+                var tdSite = document.createElement('td');
+                var tdUsername = document.createElement('td');
+                var tdPassword = document.createElement('td');
+                var tdAction = document.createElement('td');
+                var actionButton = document.createElement('button');
+                actionButton.classList.add('btn', 'btn-sm', 'btn-dark');
+                actionButton.innerText = 'copy';
+                // var tdSubmitButton = document.createElement('td');
+                // var submitButton = document.createElement('button');
+                // submitButton.classList.add('btn', 'btn-sm', 'btn-dark');
+                // submitButton.innerText = 'submit';
+
+                tdSite.innerText = password.site;
+                tdUsername.innerText = password.username;
+                tdPassword.innerText = '*'.repeat(password.password.length);
+                tdAction.appendChild(actionButton);
+                // tdPassword.innerText = data.data.password;
+                // tdSubmitButton.appendChild(submitButton);
+                // submitButton.addEventListener('click', () => {
+                //     // Send data to content.js
+                //     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                //         chrome.tabs.sendMessage(tabs[0].id, { type: 'fillPassword', data: data.data });
+                //     });
+                // });
+
+                tr.appendChild(tdSite);
+                tr.appendChild(tdUsername);
+                tr.appendChild(tdPassword);
+                tr.appendChild(tdAction);
+                // tr.appendChild(tdSubmitButton);
+
+                tablePasswords.appendChild(tr);
+                });
             } else {
                 message.textContent = 'No password input detected.';
             }
@@ -108,17 +181,18 @@ document.addEventListener('DOMContentLoaded', function () {
             var tdSite = document.createElement('td');
             var tdUsername = document.createElement('td');
             var tdPassword = document.createElement('td');
-            var tdFillButton = document.createElement('td');
-            var fillButton = document.createElement('button');
-            fillButton.classList.add('btn', 'btn-sm', 'btn-dark');
-            fillButton.innerText = 'fill';
+            var tdSubmitButton = document.createElement('td');
+            var submitButton = document.createElement('button');
+            submitButton.classList.add('btn', 'btn-sm', 'btn-dark');
+            submitButton.innerText = 'Submit';
 
             tdSite.innerText = data.site;
             tdUsername.innerText = data.username;
             tdPassword.innerText = '*'.repeat(data.password.length);
             // tdPassword.innerText = data.password;
-            tdFillButton.appendChild(fillButton);
-            fillButton.addEventListener('click', () => {
+            tdSubmitButton.appendChild(submitButton);
+            submitButton.addEventListener('click', () => {
+
                 // Send data to content.js
                 chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                     chrome.tabs.sendMessage(tabs[0].id, { type: 'fillPassword', data: data });
@@ -128,15 +202,9 @@ document.addEventListener('DOMContentLoaded', function () {
             tr.appendChild(tdSite);
             tr.appendChild(tdUsername);
             tr.appendChild(tdPassword);
-            tr.appendChild(tdFillButton);
+            tr.appendChild(tdSubmitButton);
 
             tablePasswords.appendChild(tr);
-
-            //chrome.runtime.sendMessage({ type: 'insertDataToForm', data: data});
-            // Send data to content.js
-            // chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-            //   chrome.tabs.sendMessage(tabs[0].id, { type: 'fillPassword', data: data });
-            // });
         }
     });
 
